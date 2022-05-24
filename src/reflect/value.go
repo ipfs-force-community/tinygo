@@ -745,10 +745,6 @@ func MakeSlice(typ Type, len, cap int) Value {
 	panic("unimplemented: reflect.MakeSlice()")
 }
 
-func Zero(typ Type) Value {
-	panic("unimplemented: reflect.Zero()")
-}
-
 // New is the reflect equivalent of the new(T) keyword, returning a pointer to a
 // new value of the given type.
 func New(typ Type) Value {
@@ -758,6 +754,30 @@ func New(typ Type) Value {
 		flags:    valueFlagExported,
 	}
 }
+
+// Zero returns a Value representing the zero value for the specified type.
+// The result is different from the zero value of the Value struct,
+// which represents no value at all.
+// For example, Zero(TypeOf(42)) returns a Value with Kind Int and value 0.
+// The returned value is neither addressable nor settable.
+func Zero(typ Type) Value {
+	if typ == nil {
+		panic("reflect: Zero(nil)")
+	}
+	t := typ.(rawType)
+
+	switch t.Kind() {
+	case Func, Chan, Map, Ptr, Slice, UnsafePointer, Interface:
+		return Value{t, nil, valueFlagExported}
+	case Bool, Int, Int8, Int16, Int32,Int64, Uint,Uint8,Uint16,Uint32,Uint64,Float32,
+	Float64, Complex64, Complex128, String, Array, Struct:
+		val := alloc(typ.Size(), nil)
+		return Value{t, val, valueFlagExported&valueFlagIndirect}
+	default: // not implemented: Func
+		panic(&ValueError{Method: "Pointer"})
+	}
+}
+
 
 type funcHeader struct {
 	Context unsafe.Pointer
